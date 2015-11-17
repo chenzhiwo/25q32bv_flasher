@@ -1,3 +1,6 @@
+//在树莓派上面读写winbone 25q32bv flash 芯片的程序
+//参数1为输入的文件名，参数2为输出的文件名
+
 #include<stdio.h>
 #include<stdlib.h>
 #include<wiringPi.h>
@@ -19,14 +22,14 @@ int pageProgram(int pageaddr, uchar input[], int lenght);
 int main(int argc, char *args[])
 {
 	printf("Starting\n");
-	wiringPiSetup();
+	wiringPiSetup();		//初始化spi接口
 	int spiinit = 	wiringPiSPISetup(channel, clock);
 	if(spiinit == -1)
 	{
 		printf("Can't init spi");
 		return(-1);
 	}
-	printJEDECID();
+	printJEDECID();		//测试输出芯片的一些信息
 	printUNIID();
 
 	unsigned char filebuffer[512];
@@ -35,7 +38,7 @@ int main(int argc, char *args[])
 	{
 		return(-1);
 	}
-	infile = fopen(args[1], "rb");
+	infile = fopen(args[1], "rb");		//打开文件
 	outfile = fopen(args[2], "wb");
 	if(infile == NULL || outfile == NULL)                                                                                 
 	{                                                                                                                     
@@ -49,13 +52,13 @@ int main(int argc, char *args[])
 
 	int pageToWrite = (filelenght / 256) + 1;
 	printf("PTW: %d\n",pageToWrite);
-	chipErase();
+	chipErase();		//写入数据前先全片擦除
 	int readbyte = 0;
 	int pagecount, bfcount;
 	for(pagecount = 0 ; pagecount <= pageToWrite ; pagecount++)
 	{
 	readbyte = fread(filebuffer, sizeof(uchar), 256, infile);
-	pageProgram(pagecount, filebuffer, readbyte);
+	pageProgram(pagecount, filebuffer, readbyte);		//开始写入数据
 	for(bfcount = 0 ; bfcount < 256 ; bfcount++)
 	{
 		filebuffer[bfcount] = 0;
@@ -112,7 +115,7 @@ int printUNIID()
 int chipErase()
 {
 	printf("Chip erase\n");
-	writeEnable();
+	writeEnable();	//擦除前先向芯片发出写指令
 	buffer[0] = CHIP_ERASE;
 	wiringPiSPIDataRW(0, buffer, 1);
 	waitForDone();
@@ -158,8 +161,8 @@ int pageRead(int pageaddr, uchar output[], int lenght)
 
 int pageProgram(int pageaddr, uchar input[256], int lenght)
 {
-	int count = 0;
-	writeEnable();
+	int count = 0;	
+	writeEnable();	//读取芯片的指令有很多个，但是写入芯片的指令只有一个pagePrigram页编程指令，并且每次写入一个页之前都要先发送写使能指令
 	printf("Program Begin\n");
 	buffer[0] = PAGE_PROGRAM;
 	buffer[1] = (pageaddr >> 8) & 0xff;
